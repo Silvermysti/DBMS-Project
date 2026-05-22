@@ -8,8 +8,11 @@ from dotenv import load_dotenv
 
 from database import query, query_one, execute, call_proc, get_conn
 from auth import (
-    hash_password, verify_password, create_token,
-    get_current_user, require_role
+    hash_password,
+    verify_password,
+    create_token,
+    get_current_user,
+    require_role,
 )
 
 logging.basicConfig(
@@ -17,6 +20,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger("smartplate")
+
 
 def _db_error(context: str, e: Exception) -> HTTPException:
     # S7: if MySQL SIGNAL (SQLSTATE 45000, errno 1644) bubbled up, surface
@@ -27,6 +31,7 @@ def _db_error(context: str, e: Exception) -> HTTPException:
     logger.exception("%s: %s", context, e)
     return HTTPException(500, "Internal server error")
 
+
 load_dotenv()
 
 app = FastAPI(title="SmartPlate API")
@@ -34,9 +39,13 @@ app = FastAPI(title="SmartPlate API")
 # Restrict CORS to explicit dev origins (S1). Override via CORS_ORIGINS=a,b,c
 _cors_env = os.getenv("CORS_ORIGINS", "")
 _cors_origins = [o.strip() for o in _cors_env.split(",") if o.strip()] or [
-    "http://localhost:3000", "http://127.0.0.1:3000",
-    "http://localhost:5500", "http://127.0.0.1:5500",
-    "http://localhost:8080", "http://127.0.0.1:8080",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://0.0.0.0:5500",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -48,38 +57,45 @@ app.add_middleware(
 
 # ── Pydantic models ────────────────────────────────────────────────────────────
 
+
 class LoginReq(BaseModel):
     email: str
     password: str
+
 
 class RegisterReq(BaseModel):
     username: str
     email: str
     password: str
     role_name: str
-    user_type: str          # customer | employee | chef | supplier | manager
+    user_type: str  # customer | employee | chef | supplier | manager
     name: str = ""
     salary: float = 0
     contact: str = ""
     delivery_time: int = 1
 
+
 class OrderItemReq(BaseModel):
     item_id: int
     quantity: float
 
+
 class StatusReq(BaseModel):
     status: int
 
+
 class BatchUpdateReq(BaseModel):
     expiry_date: Optional[str] = None
-    quantity:    Optional[float] = None
-    unit:        Optional[str] = None
-    cost:        Optional[float] = None
-    status:      Optional[int] = None
+    quantity: Optional[float] = None
+    unit: Optional[str] = None
+    cost: Optional[float] = None
+    status: Optional[int] = None
+
 
 class SupplierBatchUpdateReq(BaseModel):
     expiry_date: Optional[str] = None
-    status:      Optional[int] = None
+    status: Optional[int] = None
+
 
 class IngredientReq(BaseModel):
     name: str
@@ -87,10 +103,12 @@ class IngredientReq(BaseModel):
     min_stock: float
     allergen: str = "None"
 
+
 class IngredientUpdateReq(BaseModel):
-    name:      Optional[str]   = None
-    unit:      Optional[str]   = None
+    name: Optional[str] = None
+    unit: Optional[str] = None
     min_stock: Optional[float] = None
+
 
 class MenuItemReq(BaseModel):
     name: str
@@ -99,17 +117,20 @@ class MenuItemReq(BaseModel):
     prep_time: int
     category: str
 
+
 class MenuItemUpdateReq(BaseModel):
-    name:         Optional[str]   = None
-    description:  Optional[str]   = None
-    price:        Optional[float] = None
-    prep_time:    Optional[int]   = None
-    is_active:    Optional[int]   = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[float] = None
+    prep_time: Optional[int] = None
+    is_active: Optional[int] = None
+
 
 class RecipeLineReq(BaseModel):
     ingredient_id: int
     quantity: float
     unit: str
+
 
 class SupplierReq(BaseModel):
     name: str
@@ -117,65 +138,78 @@ class SupplierReq(BaseModel):
     delivery_time: int
     user_id: Optional[int] = None
 
+
 class SupplierUpdateReq(BaseModel):
-    name:          Optional[str] = None
-    contact:       Optional[str] = None
+    name: Optional[str] = None
+    contact: Optional[str] = None
     delivery_time: Optional[int] = None
-    is_active:     Optional[int] = None
-    user_id:       Optional[int] = None
+    is_active: Optional[int] = None
+    user_id: Optional[int] = None
+
 
 class SupplyReq(BaseModel):
     ingredient_id: int
     price_per_unit: float
     unit: str
 
+
 class SupplyPricingReq(BaseModel):
     price_per_unit: float
     unit: str
+
 
 class BatchOrderReq(BaseModel):
     ingredient_id: int
     supplier_id: int
     quantity: float
 
+
 class WasteReq(BaseModel):
     batch_id: int
     quantity: float
 
+
 class ComplianceReq(BaseModel):
     status: int
     description: str = ""
+
 
 class WeatherReq(BaseModel):
     date: str
     temperature: float
     humidity: float
 
+
 class ProfileUpdateReq(BaseModel):
     delivery_time: Optional[int] = None
-    contact:       Optional[str] = None
-    is_active:     Optional[int] = None
+    contact: Optional[str] = None
+    is_active: Optional[int] = None
+
 
 class UserUpdateReq(BaseModel):
-    username:     Optional[str]   = None
-    email:        Optional[str]   = None
-    salary:       Optional[float] = None
+    username: Optional[str] = None
+    email: Optional[str] = None
+    salary: Optional[float] = None
+
 
 class PasswordChangeReq(BaseModel):
     old_password: str
     new_password: str
 
+
 class OccasionReq(BaseModel):
     name: str
     date: Optional[str] = None
 
+
 class NutritionReq(BaseModel):
     item_id: int
     calories: Optional[int] = None
-    protein:  Optional[int] = None
-    carbs:    Optional[int] = None
-    fat:      Optional[int] = None
-    fiber:    Optional[int] = None
+    protein: Optional[int] = None
+    carbs: Optional[int] = None
+    fat: Optional[int] = None
+    fiber: Optional[int] = None
+
 
 class ManagerBatchReq(BaseModel):
     ingredient_id: int
@@ -186,32 +220,49 @@ class ManagerBatchReq(BaseModel):
     expiry_date: Optional[str] = None
     status: int = 0
 
+
 class ForecastRunReq(BaseModel):
     target_date: str
     safety: Optional[float] = 1.5
 
+
 class GiftCodeReq(BaseModel):
     code: str
     amount: float
-    type: int = 0            # 0=percent, 1=flat
+    type: int = 0  # 0=percent, 1=flat
     min_order: float = 0
-    valid_from: str          # 'YYYY-MM-DD HH:MM:SS' or ISO date
+    valid_from: str  # 'YYYY-MM-DD HH:MM:SS' or ISO date
     valid_to: str
 
+
 # ── Health ────────────────────────────────────────────────────────────────────
+
+
+@app.get("/")
+def root():
+    return {
+        "app": "SmartPlate API",
+        "version": "1.0",
+        "docs": "/docs",
+        "health": "/health",
+        "login": "/api/v1/login",
+    }
+
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
+
 # ── Auth ──────────────────────────────────────────────────────────────────────
+
 
 @app.post("/api/v1/login")
 def login(req: LoginReq):
     row = query_one(
         "SELECT u.user_id, u.password_hash, r.name AS role_name "
         "FROM Users u JOIN Roles r ON u.role_id=r.role_id WHERE u.email=%s",
-        (req.email,)
+        (req.email,),
     )
     if not row or not verify_password(req.password, row["password_hash"]):
         raise HTTPException(401, "Invalid credentials")
@@ -220,7 +271,9 @@ def login(req: LoginReq):
 
     supplier_id = 0
     if row["role_name"] == "supplier":
-        sup = query_one("SELECT supplier_id FROM Suppliers WHERE user_id=%s", (row["user_id"],))
+        sup = query_one(
+            "SELECT supplier_id FROM Suppliers WHERE user_id=%s", (row["user_id"],)
+        )
         if sup:
             supplier_id = sup["supplier_id"]
 
@@ -230,13 +283,17 @@ def login(req: LoginReq):
 
 @app.post("/api/v1/me/password")
 def change_my_password(req: PasswordChangeReq, user=Depends(get_current_user)):
-    row = query_one("SELECT password_hash FROM Users WHERE user_id=%s", (user["user_id"],))
+    row = query_one(
+        "SELECT password_hash FROM Users WHERE user_id=%s", (user["user_id"],)
+    )
     if not row or not verify_password(req.old_password, row["password_hash"]):
         raise HTTPException(401, "Current password is incorrect")
     if len(req.new_password) < 6:
         raise HTTPException(400, "New password must be at least 6 characters")
-    execute("UPDATE Users SET password_hash=%s WHERE user_id=%s",
-            (hash_password(req.new_password), user["user_id"]))
+    execute(
+        "UPDATE Users SET password_hash=%s WHERE user_id=%s",
+        (hash_password(req.new_password), user["user_id"]),
+    )
     return {"status": "updated"}
 
 
@@ -244,7 +301,7 @@ def change_my_password(req: PasswordChangeReq, user=Depends(get_current_user)):
 def mark_alert_read(alert_id: int, user=Depends(get_current_user)):
     execute(
         "UPDATE Alerted SET read_at=NOW() WHERE alert_id=%s AND user_id=%s AND read_at IS NULL",
-        (alert_id, user["user_id"])
+        (alert_id, user["user_id"]),
     )
     return {"status": "read"}
 
@@ -253,16 +310,27 @@ def mark_alert_read(alert_id: int, user=Depends(get_current_user)):
 def register(req: RegisterReq):
     hashed = hash_password(req.password)
     try:
-        call_proc("sp_RegisterUser", (
-            req.username, req.email, hashed,
-            req.role_name, req.user_type, req.name,
-            req.salary, req.contact, req.delivery_time
-        ))
+        call_proc(
+            "sp_RegisterUser",
+            (
+                req.username,
+                req.email,
+                hashed,
+                req.role_name,
+                req.user_type,
+                req.name,
+                req.salary,
+                req.contact,
+                req.delivery_time,
+            ),
+        )
     except Exception as e:
         raise _db_error("register", e)
     return {"status": "registered"}
 
+
 # ── Customer ──────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/v1/user/menu")
 def list_menu(user=Depends(require_role("customer"))):
@@ -274,6 +342,7 @@ def list_menu(user=Depends(require_role("customer"))):
         "ORDER BY c.name, i.name"
     )
 
+
 @app.get("/api/v1/user/orders")
 def list_my_orders(user=Depends(require_role("customer"))):
     # Hide orders that have no items (empty shells from abandoned sessions)
@@ -282,8 +351,9 @@ def list_my_orders(user=Depends(require_role("customer"))):
         "WHERE mo.user_id=%s AND EXISTS ("
         "  SELECT 1 FROM Menu_Orders_Items oi WHERE oi.menu_order_id = mo.menu_order_id"
         ") ORDER BY mo.order_time DESC",
-        (user["user_id"],)
+        (user["user_id"],),
     )
+
 
 @app.post("/api/v1/user/orders", status_code=201)
 def place_order(user=Depends(require_role("customer"))):
@@ -293,7 +363,7 @@ def place_order(user=Depends(require_role("customer"))):
         "WHERE mo.user_id=%s AND NOT EXISTS ("
         "  SELECT 1 FROM Menu_Orders_Items oi WHERE oi.menu_order_id = mo.menu_order_id"
         ") ORDER BY mo.order_time DESC LIMIT 1",
-        (user["user_id"],)
+        (user["user_id"],),
     )
     if existing:
         return {"order_id": existing["menu_order_id"]}
@@ -307,16 +377,21 @@ def place_order(user=Depends(require_role("customer"))):
         conn.commit()
     return {"order_id": order_id}
 
+
 @app.post("/api/v1/user/orders/{order_id}/items", status_code=201)
-def add_order_item(order_id: int, req: OrderItemReq, user=Depends(require_role("customer"))):
+def add_order_item(
+    order_id: int, req: OrderItemReq, user=Depends(require_role("customer"))
+):
     # Verify order belongs to user
-    row = query_one("SELECT user_id FROM Menu_Orders WHERE menu_order_id=%s", (order_id,))
+    row = query_one(
+        "SELECT user_id FROM Menu_Orders WHERE menu_order_id=%s", (order_id,)
+    )
     if not row or row["user_id"] != user["user_id"]:
         raise HTTPException(403, "Forbidden")
     # U2: once any item has shipped (status>0), the order is "closed" for new items
     shipped = query_one(
         "SELECT 1 FROM Menu_Orders_Items WHERE menu_order_id=%s AND status>0 LIMIT 1",
-        (order_id,)
+        (order_id,),
     )
     if shipped:
         raise HTTPException(409, "Order is already in delivery — start a new order")
@@ -326,6 +401,7 @@ def add_order_item(order_id: int, req: OrderItemReq, user=Depends(require_role("
         raise _db_error("add_order_item", e)
     return {"status": "added"}
 
+
 @app.get("/api/v1/user/orders/{order_id}")
 def get_order(order_id: int, user=Depends(require_role("customer"))):
     order = query_one("SELECT * FROM Menu_Orders WHERE menu_order_id=%s", (order_id,))
@@ -334,13 +410,18 @@ def get_order(order_id: int, user=Depends(require_role("customer"))):
     items = query(
         "SELECT oi.*, i.name AS item_name FROM Menu_Orders_Items oi "
         "JOIN Items i ON oi.item_id=i.item_id WHERE oi.menu_order_id=%s",
-        (order_id,)
+        (order_id,),
     )
     return {"order": order, "items": items}
 
+
 @app.delete("/api/v1/user/orders/{order_id}/items/{item_id}")
-def cancel_order_item(order_id: int, item_id: int, user=Depends(require_role("customer"))):
-    order = query_one("SELECT user_id FROM Menu_Orders WHERE menu_order_id=%s", (order_id,))
+def cancel_order_item(
+    order_id: int, item_id: int, user=Depends(require_role("customer"))
+):
+    order = query_one(
+        "SELECT user_id FROM Menu_Orders WHERE menu_order_id=%s", (order_id,)
+    )
     if not order or order["user_id"] != user["user_id"]:
         raise HTTPException(403, "Forbidden")
     try:
@@ -349,16 +430,19 @@ def cancel_order_item(order_id: int, item_id: int, user=Depends(require_role("cu
         raise _db_error("cancel_order_item", e)
     return {"status": "cancelled"}
 
+
 @app.get("/api/v1/user/alerts")
 def get_my_alerts(user=Depends(require_role("customer"))):
     return query(
         "SELECT a.alert_id, a.message, al.created_at, al.read_at FROM Alerts a "
         "JOIN Alerted al ON a.alert_id=al.alert_id "
         "WHERE al.user_id=%s ORDER BY al.created_at DESC LIMIT 50",
-        (user["user_id"],)
+        (user["user_id"],),
     )
 
+
 # ── Chef ──────────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/v1/chef/orders/active")
 def list_active_orders(user=Depends(require_role("chef"))):
@@ -368,6 +452,7 @@ def list_active_orders(user=Depends(require_role("chef"))):
         "JOIN Items i ON oi.item_id=i.item_id WHERE oi.status IN (0,1) "
         "ORDER BY oi.menu_order_id ASC"
     )
+
 
 @app.get("/api/v1/chef/orders")
 def list_all_orders(user=Depends(require_role("chef"))):
@@ -379,12 +464,14 @@ def list_all_orders(user=Depends(require_role("chef"))):
         "ORDER BY oi.menu_order_id DESC LIMIT 500"
     )
 
+
 @app.patch("/api/v1/chef/orders/{order_id}/items/{item_id}/status")
-def update_order_item_status(order_id: int, item_id: int, req: StatusReq,
-                              user=Depends(require_role("chef"))):
+def update_order_item_status(
+    order_id: int, item_id: int, req: StatusReq, user=Depends(require_role("chef"))
+):
     row = query_one(
         "SELECT status FROM Menu_Orders_Items WHERE menu_order_id=%s AND item_id=%s",
-        (order_id, item_id)
+        (order_id, item_id),
     )
     if not row:
         raise HTTPException(404, "Order item not found")
@@ -395,11 +482,12 @@ def update_order_item_status(order_id: int, item_id: int, req: StatusReq,
     try:
         execute(
             "UPDATE Menu_Orders_Items SET status=%s WHERE menu_order_id=%s AND item_id=%s",
-            (req.status, order_id, item_id)
+            (req.status, order_id, item_id),
         )
     except Exception as e:
         raise _db_error("update_order_item_status", e)
     return {"status": "updated"}
+
 
 @app.get("/api/v1/chef/alerts")
 def chef_alerts(user=Depends(require_role("chef"))):
@@ -407,10 +495,12 @@ def chef_alerts(user=Depends(require_role("chef"))):
         "SELECT a.alert_id, a.message, al.created_at, al.read_at FROM Alerts a "
         "JOIN Alerted al ON a.alert_id=al.alert_id "
         "WHERE al.user_id=%s ORDER BY al.created_at DESC LIMIT 50",
-        (user["user_id"],)
+        (user["user_id"],),
     )
 
+
 # ── Employee ──────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/v1/employee/ingredients")
 def list_ingredients_emp(user=Depends(require_role("employee"))):
@@ -419,15 +509,19 @@ def list_ingredients_emp(user=Depends(require_role("employee"))):
         "LEFT JOIN Allergens a ON i.allergen_id=a.allergen_id ORDER BY i.name"
     )
 
+
 @app.get("/api/v1/employee/ingredients/{ingredient_id}/suppliers")
-def list_suppliers_for_ingredient(ingredient_id: int, user=Depends(require_role("employee"))):
+def list_suppliers_for_ingredient(
+    ingredient_id: int, user=Depends(require_role("employee"))
+):
     return query(
         "SELECT sp.supplier_id, sp.ingredient_id, sp.price_per_unit, sp.unit, "
         "s.name AS supplier_name, s.delivery_time "
         "FROM Supplies sp JOIN Suppliers s ON sp.supplier_id=s.supplier_id "
         "WHERE sp.ingredient_id=%s AND s.is_active=1 ORDER BY s.delivery_time ASC",
-        (ingredient_id,)
+        (ingredient_id,),
     )
+
 
 @app.post("/api/v1/employee/batches", status_code=201)
 def receive_batch(req: BatchOrderReq, user=Depends(require_role("employee"))):
@@ -436,6 +530,7 @@ def receive_batch(req: BatchOrderReq, user=Depends(require_role("employee"))):
     except Exception as e:
         raise _db_error("receive_batch", e)
     return {"status": "batch ordered"}
+
 
 @app.get("/api/v1/employee/batches")
 def list_batches_emp(user=Depends(require_role("employee"))):
@@ -450,7 +545,9 @@ def list_batches_emp(user=Depends(require_role("employee"))):
         "ORDER BY ib.status ASC, ib.expiry_date ASC"
     )
 
+
 # ── Supplier ──────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/v1/supplier/ingredients")
 def list_ingredients_sup(user=Depends(require_role("supplier"))):
@@ -459,6 +556,7 @@ def list_ingredients_sup(user=Depends(require_role("supplier"))):
         "LEFT JOIN Allergens a ON i.allergen_id=a.allergen_id ORDER BY i.name"
     )
 
+
 @app.get("/api/v1/supplier/supplies")
 def get_my_supplies(user=Depends(require_role("supplier"))):
     return query(
@@ -466,33 +564,46 @@ def get_my_supplies(user=Depends(require_role("supplier"))):
         "i.name AS ingredient_name "
         "FROM Supplies sp JOIN Ingredients i ON sp.ingredient_id=i.ingredient_id "
         "WHERE sp.supplier_id=%s",
-        (user["supplier_id"],)
+        (user["supplier_id"],),
     )
+
 
 @app.post("/api/v1/supplier/supplies", status_code=201)
 def add_supply(req: SupplyReq, user=Depends(require_role("supplier"))):
     execute(
         "INSERT INTO Supplies (supplier_id,ingredient_id,price_per_unit,unit) "
         "VALUES (%s,%s,%s,%s) ON DUPLICATE KEY UPDATE price_per_unit=%s, unit=%s",
-        (user["supplier_id"], req.ingredient_id, req.price_per_unit, req.unit,
-         req.price_per_unit, req.unit)
+        (
+            user["supplier_id"],
+            req.ingredient_id,
+            req.price_per_unit,
+            req.unit,
+            req.price_per_unit,
+            req.unit,
+        ),
     )
     return {"status": "added"}
 
+
 @app.delete("/api/v1/supplier/supplies/{ingredient_id}")
 def remove_supply(ingredient_id: int, user=Depends(require_role("supplier"))):
-    execute("DELETE FROM Supplies WHERE supplier_id=%s AND ingredient_id=%s",
-            (user["supplier_id"], ingredient_id))
+    execute(
+        "DELETE FROM Supplies WHERE supplier_id=%s AND ingredient_id=%s",
+        (user["supplier_id"], ingredient_id),
+    )
     return {"status": "removed"}
 
+
 @app.patch("/api/v1/supplier/supplies/{ingredient_id}/pricing")
-def update_supply_pricing(ingredient_id: int, req: SupplyPricingReq,
-                           user=Depends(require_role("supplier"))):
+def update_supply_pricing(
+    ingredient_id: int, req: SupplyPricingReq, user=Depends(require_role("supplier"))
+):
     execute(
         "UPDATE Supplies SET price_per_unit=%s, unit=%s WHERE supplier_id=%s AND ingredient_id=%s",
-        (req.price_per_unit, req.unit, user["supplier_id"], ingredient_id)
+        (req.price_per_unit, req.unit, user["supplier_id"], ingredient_id),
     )
     return {"status": "updated"}
+
 
 @app.get("/api/v1/supplier/batches")
 def get_my_batches(user=Depends(require_role("supplier"))):
@@ -501,25 +612,35 @@ def get_my_batches(user=Depends(require_role("supplier"))):
         "i.name AS ingredient_name FROM Inventory_Batches ib "
         "LEFT JOIN Ingredients i ON ib.ingredient_id=i.ingredient_id "
         "WHERE ib.supplier_id=%s ORDER BY ib.status ASC, ib.purchase_date DESC",
-        (user["supplier_id"],)
+        (user["supplier_id"],),
     )
 
+
 @app.patch("/api/v1/supplier/batches/{batch_id}")
-def update_batch_supplier(batch_id: int, req: SupplierBatchUpdateReq,
-                           user=Depends(require_role("supplier"))):
-    row = query_one("SELECT supplier_id FROM Inventory_Batches WHERE inventory_batch_id=%s", (batch_id,))
+def update_batch_supplier(
+    batch_id: int, req: SupplierBatchUpdateReq, user=Depends(require_role("supplier"))
+):
+    row = query_one(
+        "SELECT supplier_id FROM Inventory_Batches WHERE inventory_batch_id=%s",
+        (batch_id,),
+    )
     if not row or row["supplier_id"] != user["supplier_id"]:
         raise HTTPException(403, "Forbidden")
     if req.expiry_date is not None:
-        execute("UPDATE Inventory_Batches SET expiry_date=%s WHERE inventory_batch_id=%s",
-                (req.expiry_date, batch_id))
+        execute(
+            "UPDATE Inventory_Batches SET expiry_date=%s WHERE inventory_batch_id=%s",
+            (req.expiry_date, batch_id),
+        )
     if req.status is not None:
         try:
-            execute("UPDATE Inventory_Batches SET status=%s WHERE inventory_batch_id=%s",
-                    (req.status, batch_id))
+            execute(
+                "UPDATE Inventory_Batches SET status=%s WHERE inventory_batch_id=%s",
+                (req.status, batch_id),
+            )
         except Exception as e:
             raise _db_error("supplier_update_batch_status", e)
     return {"status": "updated"}
+
 
 @app.patch("/api/v1/supplier/profile")
 def update_my_profile(req: ProfileUpdateReq, user=Depends(require_role("supplier"))):
@@ -529,19 +650,23 @@ def update_my_profile(req: ProfileUpdateReq, user=Depends(require_role("supplier
         "contact=COALESCE(%s,contact), "
         "is_active=COALESCE(%s,is_active) "
         "WHERE user_id=%s",
-        (req.delivery_time, req.contact, req.is_active, user["user_id"])
+        (req.delivery_time, req.contact, req.is_active, user["user_id"]),
     )
     return {"status": "updated"}
 
+
 # ── Manager ───────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/v1/manager/allergens")
 def list_allergens(user=Depends(require_role("manager"))):
     return query("SELECT * FROM Allergens ORDER BY name")
 
+
 @app.get("/api/v1/manager/categories")
 def list_categories(user=Depends(require_role("manager"))):
     return query("SELECT category_id AS id, name FROM Category ORDER BY name")
+
 
 @app.get("/api/v1/manager/ingredients")
 def list_ingredients(user=Depends(require_role("manager"))):
@@ -549,6 +674,7 @@ def list_ingredients(user=Depends(require_role("manager"))):
         "SELECT i.*, a.name AS allergen_name FROM Ingredients i "
         "LEFT JOIN Allergens a ON i.allergen_id=a.allergen_id ORDER BY i.name"
     )
+
 
 @app.post("/api/v1/manager/ingredients", status_code=201)
 def add_ingredient(req: IngredientReq, user=Depends(require_role("manager"))):
@@ -558,20 +684,25 @@ def add_ingredient(req: IngredientReq, user=Depends(require_role("manager"))):
         raise _db_error("add_ingredient", e)
     return {"status": "created"}
 
+
 @app.patch("/api/v1/manager/ingredients/{id}")
-def update_ingredient(id: int, req: IngredientUpdateReq, user=Depends(require_role("manager"))):
+def update_ingredient(
+    id: int, req: IngredientUpdateReq, user=Depends(require_role("manager"))
+):
     execute(
         "UPDATE Ingredients SET "
         "name=COALESCE(%s,name), unit=COALESCE(%s,unit), min_stock=COALESCE(%s,min_stock) "
         "WHERE ingredient_id=%s",
-        (req.name, req.unit, req.min_stock, id)
+        (req.name, req.unit, req.min_stock, id),
     )
     return {"status": "updated"}
+
 
 @app.delete("/api/v1/manager/ingredients/{id}")
 def delete_ingredient(id: int, user=Depends(require_role("manager"))):
     execute("DELETE FROM Ingredients WHERE ingredient_id=%s", (id,))
     return {"status": "deleted"}
+
 
 @app.get("/api/v1/manager/menu")
 def list_menu_mgr(user=Depends(require_role("manager"))):
@@ -580,75 +711,102 @@ def list_menu_mgr(user=Depends(require_role("manager"))):
         "JOIN Category c ON i.category_id=c.category_id ORDER BY c.name, i.name"
     )
 
+
 @app.post("/api/v1/manager/menu", status_code=201)
 def add_menu_item(req: MenuItemReq, user=Depends(require_role("manager"))):
     try:
-        call_proc("sp_AddMenuItem", (req.name, req.description, req.price, req.prep_time, req.category))
+        call_proc(
+            "sp_AddMenuItem",
+            (req.name, req.description, req.price, req.prep_time, req.category),
+        )
     except Exception as e:
         raise _db_error("add_menu_item", e)
     return {"status": "created"}
 
+
 @app.patch("/api/v1/manager/menu/{item_id}")
-def update_menu_item(item_id: int, req: MenuItemUpdateReq, user=Depends(require_role("manager"))):
+def update_menu_item(
+    item_id: int, req: MenuItemUpdateReq, user=Depends(require_role("manager"))
+):
     execute(
         "UPDATE Items SET "
         "name=COALESCE(%s,name), description=COALESCE(%s,description), "
         "price=COALESCE(%s,price), prep_time=COALESCE(%s,prep_time), "
         "is_active=COALESCE(%s,is_active) "
         "WHERE item_id=%s",
-        (req.name, req.description, req.price, req.prep_time, req.is_active, item_id)
+        (req.name, req.description, req.price, req.prep_time, req.is_active, item_id),
     )
     return {"status": "updated"}
+
 
 @app.delete("/api/v1/manager/menu/{item_id}")
 def delete_menu_item(item_id: int, user=Depends(require_role("manager"))):
     execute("DELETE FROM Items WHERE item_id=%s", (item_id,))
     return {"status": "deleted"}
 
+
 @app.get("/api/v1/manager/menu/{item_id}/recipe")
 def get_recipe(item_id: int, user=Depends(require_role("manager"))):
     return query(
         "SELECT r.*, i.name AS ingredient_name FROM Recipes r "
         "JOIN Ingredients i ON r.ingredient_id=i.ingredient_id WHERE r.item_id=%s",
-        (item_id,)
+        (item_id,),
     )
 
+
 @app.post("/api/v1/manager/menu/{item_id}/recipe", status_code=201)
-def add_recipe_line(item_id: int, req: RecipeLineReq, user=Depends(require_role("manager"))):
+def add_recipe_line(
+    item_id: int, req: RecipeLineReq, user=Depends(require_role("manager"))
+):
     try:
-        call_proc("sp_AddRecipeLine", (item_id, req.ingredient_id, req.quantity, req.unit))
+        call_proc(
+            "sp_AddRecipeLine", (item_id, req.ingredient_id, req.quantity, req.unit)
+        )
     except Exception as e:
         raise _db_error("add_recipe_line", e)
     return {"status": "added"}
 
+
 @app.delete("/api/v1/manager/menu/{item_id}/recipe/{ingredient_id}")
-def delete_recipe_line(item_id: int, ingredient_id: int, user=Depends(require_role("manager"))):
-    execute("DELETE FROM Recipes WHERE item_id=%s AND ingredient_id=%s", (item_id, ingredient_id))
+def delete_recipe_line(
+    item_id: int, ingredient_id: int, user=Depends(require_role("manager"))
+):
+    execute(
+        "DELETE FROM Recipes WHERE item_id=%s AND ingredient_id=%s",
+        (item_id, ingredient_id),
+    )
     return {"status": "deleted"}
+
 
 @app.get("/api/v1/manager/suppliers")
 def list_suppliers(user=Depends(require_role("manager"))):
     return query("SELECT * FROM Suppliers ORDER BY name")
 
+
 # S8: supplier creation happens through /manager/users with role=supplier,
 # which ensures a linked User record and credentials. Standalone endpoint removed.
 
+
 @app.patch("/api/v1/manager/suppliers/{id}")
-def update_supplier(id: int, req: SupplierUpdateReq, user=Depends(require_role("manager"))):
+def update_supplier(
+    id: int, req: SupplierUpdateReq, user=Depends(require_role("manager"))
+):
     execute(
         "UPDATE Suppliers SET "
         "name=COALESCE(%s,name), contact=COALESCE(%s,contact), "
         "delivery_time=COALESCE(%s,delivery_time), is_active=COALESCE(%s,is_active), "
         "user_id=COALESCE(%s,user_id) "
         "WHERE supplier_id=%s",
-        (req.name, req.contact, req.delivery_time, req.is_active, req.user_id, id)
+        (req.name, req.contact, req.delivery_time, req.is_active, req.user_id, id),
     )
     return {"status": "updated"}
+
 
 @app.delete("/api/v1/manager/suppliers/{id}")
 def delete_supplier(id: int, user=Depends(require_role("manager"))):
     execute("DELETE FROM Suppliers WHERE supplier_id=%s", (id,))
     return {"status": "deleted"}
+
 
 @app.get("/api/v1/manager/batches")
 def list_batches_mgr(user=Depends(require_role("manager"))):
@@ -663,26 +821,36 @@ def list_batches_mgr(user=Depends(require_role("manager"))):
         "ORDER BY ib.status ASC, ib.expiry_date ASC"
     )
 
+
 @app.patch("/api/v1/manager/batches/{batch_id}")
-def update_batch_mgr(batch_id: int, req: BatchUpdateReq, user=Depends(require_role("manager"))):
+def update_batch_mgr(
+    batch_id: int, req: BatchUpdateReq, user=Depends(require_role("manager"))
+):
     try:
         execute(
             "UPDATE Inventory_Batches SET "
             "expiry_date=COALESCE(%s,expiry_date), quantity=COALESCE(%s,quantity), "
             "unit=COALESCE(%s,unit), cost=COALESCE(%s,cost), status=COALESCE(%s,status) "
             "WHERE inventory_batch_id=%s",
-            (req.expiry_date, req.quantity, req.unit, req.cost, req.status, batch_id)
+            (req.expiry_date, req.quantity, req.unit, req.cost, req.status, batch_id),
         )
     except Exception as e:
         raise _db_error("manager_update_batch", e)
     return {"status": "updated"}
+
 
 @app.delete("/api/v1/manager/batches/{batch_id}")
 def delete_batch(batch_id: int, user=Depends(require_role("manager"))):
     execute("DELETE FROM Inventory_Batches WHERE inventory_batch_id=%s", (batch_id,))
     return {"status": "deleted"}
 
-def _clamp_page(limit: Optional[int], offset: Optional[int], default_limit: int = 200, max_limit: int = 1000):
+
+def _clamp_page(
+    limit: Optional[int],
+    offset: Optional[int],
+    default_limit: int = 200,
+    max_limit: int = 1000,
+):
     lim = default_limit if limit is None else max(1, min(int(limit), max_limit))
     off = 0 if offset is None else max(0, int(offset))
     return lim, off
@@ -694,36 +862,43 @@ def list_all_orders(
     to_date: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
-    user=Depends(require_role("manager"))
+    user=Depends(require_role("manager")),
 ):
     lim, off = _clamp_page(limit, offset)
     where, params = [], []
     if from_date:
-        where.append("order_time >= %s"); params.append(from_date)
+        where.append("order_time >= %s")
+        params.append(from_date)
     if to_date:
-        where.append("order_time < DATE_ADD(%s, INTERVAL 1 DAY)"); params.append(to_date)
-    sql = ("SELECT menu_order_id AS order_id, menu_order_id, order_time, price, user_id "
-           "FROM Menu_Orders")
+        where.append("order_time < DATE_ADD(%s, INTERVAL 1 DAY)")
+        params.append(to_date)
+    sql = (
+        "SELECT menu_order_id AS order_id, menu_order_id, order_time, price, user_id "
+        "FROM Menu_Orders"
+    )
     if where:
         sql += " WHERE " + " AND ".join(where)
     sql += " ORDER BY order_time DESC LIMIT %s OFFSET %s"
     params.extend([lim, off])
     return query(sql, tuple(params))
 
+
 @app.get("/api/v1/manager/orders/{order_id}")
 def get_order_mgr(order_id: int, user=Depends(require_role("manager"))):
     order = query_one("SELECT * FROM Menu_Orders WHERE menu_order_id=%s", (order_id,))
     items = query(
         "SELECT oi.*, i.name AS item_name FROM Menu_Orders_Items oi "
-        "JOIN Items i ON oi.item_id=i.item_id WHERE oi.menu_order_id=%s", (order_id,)
+        "JOIN Items i ON oi.item_id=i.item_id WHERE oi.menu_order_id=%s",
+        (order_id,),
     )
     return {"order": order, "items": items}
+
 
 @app.get("/api/v1/manager/users")
 def list_users(
     limit: Optional[int] = None,
     offset: Optional[int] = None,
-    user=Depends(require_role("manager"))
+    user=Depends(require_role("manager")),
 ):
     # B11/S7: never return password_hash
     lim, off = _clamp_page(limit, offset, default_limit=500)
@@ -731,21 +906,32 @@ def list_users(
         "SELECT u.user_id, u.username, u.email, u.last_login, u.role_id, "
         "r.name AS role_name FROM Users u "
         "JOIN Roles r ON u.role_id=r.role_id ORDER BY u.user_id LIMIT %s OFFSET %s",
-        (lim, off)
+        (lim, off),
     )
+
 
 @app.post("/api/v1/manager/users", status_code=201)
 def create_user(req: RegisterReq, user=Depends(require_role("manager"))):
     hashed = hash_password(req.password)
     try:
-        call_proc("sp_RegisterUser", (
-            req.username, req.email, hashed,
-            req.role_name, req.user_type, req.name,
-            req.salary, req.contact, req.delivery_time
-        ))
+        call_proc(
+            "sp_RegisterUser",
+            (
+                req.username,
+                req.email,
+                hashed,
+                req.role_name,
+                req.user_type,
+                req.name,
+                req.salary,
+                req.contact,
+                req.delivery_time,
+            ),
+        )
     except Exception as e:
         raise _db_error("create_user", e)
     return {"status": "created"}
+
 
 @app.patch("/api/v1/manager/users/{id}")
 def update_user(id: int, req: UserUpdateReq, user=Depends(require_role("manager"))):
@@ -753,20 +939,23 @@ def update_user(id: int, req: UserUpdateReq, user=Depends(require_role("manager"
         execute(
             "UPDATE Users SET username=COALESCE(%s,username), email=COALESCE(%s,email) "
             "WHERE user_id=%s",
-            (req.username, req.email, id)
+            (req.username, req.email, id),
         )
     if req.salary is not None:
         execute("UPDATE Employees SET salary=%s WHERE user_id=%s", (req.salary, id))
     return {"status": "updated"}
+
 
 @app.delete("/api/v1/manager/users/{id}")
 def delete_user(id: int, user=Depends(require_role("manager"))):
     execute("DELETE FROM Users WHERE user_id=%s", (id,))
     return {"status": "deleted"}
 
+
 @app.get("/api/v1/manager/waste")
 def list_waste(user=Depends(require_role("manager"))):
     return query("SELECT * FROM Waste_Records ORDER BY timestamp DESC")
+
 
 @app.post("/api/v1/manager/waste", status_code=201)
 def log_waste(req: WasteReq, user=Depends(require_role("manager"))):
@@ -776,20 +965,23 @@ def log_waste(req: WasteReq, user=Depends(require_role("manager"))):
         raise _db_error("log_waste", e)
     return {"status": "logged"}
 
+
 @app.get("/api/v1/manager/logs")
 def list_logs(
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
-    user=Depends(require_role("manager"))
+    user=Depends(require_role("manager")),
 ):
     lim, off = _clamp_page(limit, offset)
     where, params = [], []
     if from_date:
-        where.append("timestamp >= %s"); params.append(from_date)
+        where.append("timestamp >= %s")
+        params.append(from_date)
     if to_date:
-        where.append("timestamp < DATE_ADD(%s, INTERVAL 1 DAY)"); params.append(to_date)
+        where.append("timestamp < DATE_ADD(%s, INTERVAL 1 DAY)")
+        params.append(to_date)
     sql = "SELECT * FROM Logs"
     if where:
         sql += " WHERE " + " AND ".join(where)
@@ -804,19 +996,23 @@ def list_sales(
     to_date: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
-    user=Depends(require_role("manager"))
+    user=Depends(require_role("manager")),
 ):
     lim, off = _clamp_page(limit, offset, default_limit=500)
     where, params = [], []
     if from_date:
-        where.append("mo.order_time >= %s"); params.append(from_date)
+        where.append("mo.order_time >= %s")
+        params.append(from_date)
     if to_date:
-        where.append("mo.order_time < DATE_ADD(%s, INTERVAL 1 DAY)"); params.append(to_date)
-    sql = ("SELECT sh.*, i.name AS item_name, o.name AS occasion_name, mo.order_time "
-           "FROM Sales_History sh "
-           "JOIN Items i ON sh.item_id=i.item_id "
-           "JOIN Occasions o ON sh.occasion_id=o.occasion_id "
-           "JOIN Menu_Orders mo ON sh.menu_order_id=mo.menu_order_id")
+        where.append("mo.order_time < DATE_ADD(%s, INTERVAL 1 DAY)")
+        params.append(to_date)
+    sql = (
+        "SELECT sh.*, i.name AS item_name, o.name AS occasion_name, mo.order_time "
+        "FROM Sales_History sh "
+        "JOIN Items i ON sh.item_id=i.item_id "
+        "JOIN Occasions o ON sh.occasion_id=o.occasion_id "
+        "JOIN Menu_Orders mo ON sh.menu_order_id=mo.menu_order_id"
+    )
     if where:
         sql += " WHERE " + " AND ".join(where)
     sql += " ORDER BY mo.order_time DESC LIMIT %s OFFSET %s"
@@ -830,31 +1026,38 @@ def list_compliance(
     to_date: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
-    user=Depends(require_role("manager"))
+    user=Depends(require_role("manager")),
 ):
     lim, off = _clamp_page(limit, offset)
     where, params = [], []
     if from_date:
-        where.append("inspection_date >= %s"); params.append(from_date)
+        where.append("inspection_date >= %s")
+        params.append(from_date)
     if to_date:
-        where.append("inspection_date < DATE_ADD(%s, INTERVAL 1 DAY)"); params.append(to_date)
-    sql = ("SELECT compliance_record_id AS id, compliance_record_id, "
-           "inspection_date, status, description FROM Compliance_Records")
+        where.append("inspection_date < DATE_ADD(%s, INTERVAL 1 DAY)")
+        params.append(to_date)
+    sql = (
+        "SELECT compliance_record_id AS id, compliance_record_id, "
+        "inspection_date, status, description FROM Compliance_Records"
+    )
     if where:
         sql += " WHERE " + " AND ".join(where)
     sql += " ORDER BY inspection_date DESC LIMIT %s OFFSET %s"
     params.extend([lim, off])
     return query(sql, tuple(params))
 
+
 @app.post("/api/v1/manager/compliance", status_code=201)
 def log_compliance(req: ComplianceReq, user=Depends(require_role("manager"))):
     call_proc("sp_LogCompliance", (req.status, req.description))
     return {"status": "logged"}
 
+
 @app.post("/api/v1/manager/weather", status_code=201)
 def record_weather(req: WeatherReq, user=Depends(require_role("manager"))):
     call_proc("sp_RecordWeather", (req.date, req.temperature, req.humidity))
     return {"status": "recorded"}
+
 
 @app.get("/api/v1/manager/alerts")
 def list_alerts(user=Depends(require_role("manager"))):
@@ -862,7 +1065,7 @@ def list_alerts(user=Depends(require_role("manager"))):
         "SELECT a.alert_id, a.message, al.created_at FROM Alerts a "
         "JOIN Alerted al ON a.alert_id=al.alert_id "
         "WHERE al.user_id=%s ORDER BY al.created_at DESC LIMIT 50",
-        (user["user_id"],)
+        (user["user_id"],),
     )
 
 
@@ -873,8 +1076,15 @@ def add_batch_mgr(req: ManagerBatchReq, user=Depends(require_role("manager"))):
             "INSERT INTO Inventory_Batches "
             "(purchase_date, expiry_date, quantity, unit, cost, status, supplier_id, ingredient_id) "
             "VALUES (NOW(), %s, %s, %s, %s, %s, %s, %s)",
-            (req.expiry_date, req.quantity, req.unit, req.cost, req.status,
-             req.supplier_id, req.ingredient_id)
+            (
+                req.expiry_date,
+                req.quantity,
+                req.unit,
+                req.cost,
+                req.status,
+                req.supplier_id,
+                req.ingredient_id,
+            ),
         )
     except Exception as e:
         raise _db_error("add_batch_mgr", e)
@@ -897,7 +1107,7 @@ def add_occasion(req: OccasionReq, user=Depends(require_role("manager"))):
         execute(
             "INSERT INTO Occasions (name, date) VALUES (%s, %s) "
             "ON DUPLICATE KEY UPDATE date=VALUES(date)",
-            (req.name, req.date)
+            (req.name, req.date),
         )
     except Exception as e:
         raise _db_error("add_occasion", e)
@@ -935,7 +1145,7 @@ def upsert_nutrition(req: NutritionReq, user=Depends(require_role("manager"))):
             "ON DUPLICATE KEY UPDATE "
             "calories=VALUES(calories), protein=VALUES(protein), carbs=VALUES(carbs), "
             "fat=VALUES(fat), fiber=VALUES(fiber)",
-            (req.item_id, req.calories, req.protein, req.carbs, req.fat, req.fiber)
+            (req.item_id, req.calories, req.protein, req.carbs, req.fat, req.fiber),
         )
     except Exception as e:
         raise _db_error("upsert_nutrition", e)
@@ -949,6 +1159,7 @@ def delete_nutrition(item_id: int, user=Depends(require_role("manager"))):
 
 
 # ── Forecasting (Phase 9) ─────────────────────────────────────────────────────
+
 
 @app.post("/api/v1/manager/forecast/minstocks/run")
 def run_minstock_forecast(req: ForecastRunReq, user=Depends(require_role("manager"))):
@@ -996,7 +1207,7 @@ def list_minstock_forecast(target_date: str, user=Depends(require_role("manager"
         "JOIN Ingredients ing ON ing.ingredient_id=f.ingredient_id "
         "WHERE f.forecast_date=%s "
         "ORDER BY ing.name",
-        (target_date,)
+        (target_date,),
     )
 
 
@@ -1010,11 +1221,12 @@ def list_pricing_forecast(target_date: str, user=Depends(require_role("manager")
         "JOIN Items i ON i.item_id=o.item_id "
         "WHERE o.effective_date=%s "
         "ORDER BY i.name",
-        (target_date,)
+        (target_date,),
     )
 
 
 # ── Gift codes (B18) ──────────────────────────────────────────────────────────
+
 
 @app.get("/api/v1/manager/gift-codes")
 def list_gift_codes(user=Depends(require_role("manager"))):
@@ -1032,7 +1244,14 @@ def create_gift_code(req: GiftCodeReq, user=Depends(require_role("manager"))):
         new_id = execute(
             "INSERT INTO Gift_Code (code, amount, type, min_order, valid_from, valid_to) "
             "VALUES (%s, %s, %s, %s, %s, %s)",
-            (req.code, req.amount, req.type, req.min_order, req.valid_from, req.valid_to)
+            (
+                req.code,
+                req.amount,
+                req.type,
+                req.min_order,
+                req.valid_from,
+                req.valid_to,
+            ),
         )
     except Exception as e:
         raise _db_error("create_gift_code", e)

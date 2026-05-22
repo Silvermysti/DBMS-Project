@@ -18,19 +18,17 @@ INSERT IGNORE INTO Roles (name, description) VALUES
 ('supplier', 'Ingredient supplier'),
 ('customer', 'Restaurant customer');
 
--- ── Users (password = "password123" for all) ─────────────────────────────────
--- bcrypt hash of "password123" (passlib[bcrypt]==1.7.4 / bcrypt==4.0.1)
-SET @hash = '$2b$12$BEW87UjUenLX.gdZdi8ikepW5agUAJpEMqbRLn/tP1z8/RwyTUdri';
+-- ── Users (password = "Password123" for all) ─────────────────────────────────
 
 INSERT IGNORE INTO Users (username, email, password_hash, last_login, role_id) VALUES
-('admin',        'admin@smartplate.com',    @hash, NOW(), (SELECT role_id FROM Roles WHERE name='manager')),
-('chef_ali',     'ali@smartplate.com',      @hash, NOW(), (SELECT role_id FROM Roles WHERE name='chef')),
-('chef_priya',   'priya@smartplate.com',    @hash, NOW(), (SELECT role_id FROM Roles WHERE name='chef')),
-('emp_raj',      'raj@smartplate.com',      @hash, NOW(), (SELECT role_id FROM Roles WHERE name='employee')),
-('sup_freshco',  'fresh@freshco.com',       @hash, NOW(), (SELECT role_id FROM Roles WHERE name='supplier')),
-('sup_quicksup', 'quick@quicksupply.com',   @hash, NOW(), (SELECT role_id FROM Roles WHERE name='supplier')),
-('customer_sara','sara@email.com',          @hash, NOW(), (SELECT role_id FROM Roles WHERE name='customer')),
-('customer_john','john@email.com',          @hash, NOW(), (SELECT role_id FROM Roles WHERE name='customer'));
+('admin',        'admin@smartplate.com',    'Password123', NOW(), (SELECT role_id FROM Roles WHERE name='manager')),
+('chef_ali',     'ali@smartplate.com',      'Password123', NOW(), (SELECT role_id FROM Roles WHERE name='chef')),
+('chef_priya',   'priya@smartplate.com',    'Password123', NOW(), (SELECT role_id FROM Roles WHERE name='chef')),
+('emp_raj',      'raj@smartplate.com',      'Password123', NOW(), (SELECT role_id FROM Roles WHERE name='employee')),
+('sup_freshco',  'fresh@freshco.com',       'Password123', NOW(), (SELECT role_id FROM Roles WHERE name='supplier')),
+('sup_quicksup', 'quick@quicksupply.com',   'Password123', NOW(), (SELECT role_id FROM Roles WHERE name='supplier')),
+('customer_sara','sara@email.com',          'Password123', NOW(), (SELECT role_id FROM Roles WHERE name='customer')),
+('customer_john','john@email.com',          'Password123', NOW(), (SELECT role_id FROM Roles WHERE name='customer'));
 
 -- ── Employees ────────────────────────────────────────────────────────────────
 INSERT IGNORE INTO Employees (hire_date, salary, user_id) VALUES
