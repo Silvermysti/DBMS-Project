@@ -261,8 +261,8 @@ def health():
 def login(req: LoginReq):
     row = query_one(
         "SELECT u.user_id, u.password_hash, r.name AS role_name "
-        "FROM Users u JOIN Roles r ON u.role_id=r.role_id WHERE u.email=%s",
-        (req.email,),
+        "FROM Users u JOIN Roles r ON u.role_id=r.role_id WHERE u.email=%s OR u.username=%s",
+        (req.email, req.email),
     )
     if not row or not verify_password(req.password, row["password_hash"]):
         raise HTTPException(401, "Invalid credentials")
